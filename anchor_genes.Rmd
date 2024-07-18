@@ -1,0 +1,76 @@
+
+## anchor genes
+```{r}
+library(Hmisc)
+library(pROC)
+library(survival)
+library(data.table)
+library(tibble)
+
+df_expression <- read.table("data/ICB_expression.tsv")
+genes <- colnames(df_expression)
+df_samples<- read.csv("data/ICB_sample.tsv", sep="\t",row.names = 1)
+df_samples <- df_samples[df_samples$ICI_Tx==T &!is.na(df_samples$Response)  ,]
+
+response_labels <- c("Complete Response"=4,"Partial Response"=3,"Stable Disease"=2,"Progressive Disease"=1)
+df_samples[["Response"]] <- response_labels[df_samples[["Response"]]]
+df_samples[["Response"]] <- as.integer(df_samples[["Response"]] )
+
+## Combine expression data with sample information.
+df_expression <- rownames_to_column(df_expression,var="ID")
+df_samples <- rownames_to_column(df_samples,var="ID")
+df_icb <- merge(df_expression,df_samples ,var="ID")
+
+
+gene_ci <- list()
+for (gene in genes) {
+    s <- Surv(df_icb[["Response"]],rep(1,nrow(df_icb )))
+    ci <- Hmisc::rcorr.cens(df_icb[[gene]],s)[["C Index"]]
+    gene_ci[[gene]] <- ci
+}
+
+### print anchor genes
+anchor_genes <- names(gene_ci[gene_ci>0.6])
+
+```
+
+## immune status
+
+```{r}
+library(data.table)
+library(ggplot2)
+df_expression <- read.table("data/ICB_expression.tsv")
+df_samples<- read.csv("data/ICB_sample.tsv", sep="\t",row.names = 1)
+df_samples <- df_samples[df_samples$ICI_Tx==T &!is.na(df_samples$Response)  ,]
+df_expression <- rownames_to_column(df_expression,var="ID")
+df_samples <- rownames_to_column(df_samples,var="ID")
+df_icb <- merge(df_expression,df_samples ,var="ID")
+
+response <- ifelse(df_icb$Responder,"R","NR")
+g1 <- "CD8A"
+g2 <- "CHST15"
+ratio <- log2((df_icb[[g1]]+1e-6)/(df_icb[[g2]]+1e-6))
+roc_a <- roc(response,df_icb[[g1]],direction="<",levels=c("NR","R"))
+roc_b <- roc(response,df_icb[[g2]],direction="<",levels=c("NR","R"))
+roc_c <- roc(response,ratio,direction="<",levels=c("NR","R"))
+pdata <- data.frame(fpr=c(1-roc_a$specificities,1-roc_b$specificities,1-roc_c$specificities),
+                        tpr=c(roc_a$sensitivities,roc_b$sensitivities,roc_c$sensitivities),
+                        feature=factor(  c(rep(g1,length(roc_a$sensitivities)),rep(g2,length(roc_b$sensitivities)),
+                          rep(paste(g1,g2,sep = "/"),length(roc_c$sensitivities))) ))
+p <- ggplot(pdata,aes(x=fpr,y=tpr,color=feature))+
+  geom_line(lwd=1)+
+  geom_abline(linetype="dashed",color="darkgray")+
+  annotate("text",x=0.7,y=0.2,label=paste(sprintf("AUC %s:",g1),round(auc(roc_a),2)),size=2)+
+  annotate("text",x=0.7,y=0.1,label=paste(sprintf("AUC %s:",g2),round(auc(roc_b),2)),size=2)+
+  annotate("text",x=0.7,y=0.3,label=paste(sprintf("AUC %s:",paste(g1,g2,sep = "/")),round(auc(roc_c),2)),size=2)+
+  labs(title=sprintf("ROC Curves for Features %s, %s, and %s",g1,g2,paste(g1,g2,sep = "/")), x="False Positive Rate", y="True Positive Rate") +
+  theme(panel.background = element_blank(),panel.grid = element_blank(), panel.border = element_rect(colour = "black", fill=NA, linewidth=1.5),plot.title = element_text(size = 9))
+ 
+p
+
+```
+
+
+
+
+

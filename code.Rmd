@@ -1,0 +1,496 @@
+
+## Fig. 2a-b
+```{r}
+library(ggplot2)
+library(data.table)
+library(tibble)
+
+md <- readRDS("data/icb_cluster.rds")
+
+p1 <- ggplot(md, aes(x = UMAP_1, y = UMAP_2, fill = TCGA_Study)) +
+  geom_point(shape = 21, size = 1.5,color="black") +ggtitle("TCGA_Study")+ theme_classic() +
+  scale_fill_manual(values = brewer.pal(5,"Set1"))+
+  theme(legend.position = c(0.9, 0.35),legend.text = element_text(margin=margin(t=0, b=0))) +
+  labs(title = NULL,fill="Tumor")
+
+p2 <- ggplot(md, aes(x = UMAP_1, y = UMAP_2, fill = Responder)) +
+  geom_point(shape = 21, size = 1.5,color="black") +ggtitle("Responder")+
+    scale_fill_manual(values = c( "#666666", "#E7298A" ))+
+  theme_classic() +
+  theme(legend.position =c(0.75, 0.25)) +
+labs(title = NULL)
+ 
+```
+## Fig. 2c
+```{r}
+library(ggplot2)
+ 
+top_N <-readRDS( file="data/features_top10_auc.rds")
+
+ggplot(top_N, aes(x=Category, y=AUC, fill=Category)) +
+  stat_summary(fun=mean, geom="crossbar", width=0.5, color="black") + # 
+  geom_jitter(shape=21, width=0.2, size=4, stroke=0.5, colour="black") +
+  labs(title="Comparison of AUC Values by Category", 
+       x="Category", 
+       y="AUC Value")+
+  theme_classic()+
+  theme(legend.position="none") 
+
+```
+
+## Fig. 3a-c
+```{r}
+library(Seurat)
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+sample <- "KIRC_GSE121636"
+ 
+counts <- Read10X_h5(paste0("data/",sample,"_expression.h5"))
+
+df_meta <- read.csv(paste0("data/",sample,"_CellMetainfo_table.tsv"),sep = "\t",row.names = 1)
+
+scRNA <- CreateSeuratObject(counts,project = "scRNA")
+all(Cells(scRNA)==rownames(df_meta)) 
+
+gene1 <- "CD8A"
+gene2 <- "CHST15"
+pdata <- cbind(t(as.matrix(counts[c(gene1,gene2 ),])),df_meta)
+
+mean_coords <- pdata %>% 
+  group_by(`Celltype..major.lineage.`) %>% 
+  summarise(x = mean(UMAP_1), y = mean(UMAP_2))
+
+p1 <- ggplot(pdata,aes(UMAP_1,UMAP_2,color = `Celltype..major.lineage.`))+
+  geom_point(size=0.2)+
+  theme_void()+
+  geom_text(data = mean_coords, aes(x = x, y = y, label = `Celltype..major.lineage.`), hjust = 0.5, vjust = 0, size = 2.5,color="gray20",fontface="bold")+
+    annotate("segment", x = -9.5, xend = -5.5, y = -14, yend = -14, 
+           arrow = arrow(type = "closed", length = unit(0.05, "inches")),color="gray30") +
+  annotate("segment", x = -9.5, xend = -9.5, y = -14, yend = -10, 
+           arrow = arrow(type = "closed", length = unit(0.05, "inches")),color="gray30") +
+  annotate("text", x = -5.5, y = -15, label = "UMAP1", hjust = 0.5,size=2,color="gray30") +
+  annotate("text", x = -10.5, y = -10.5, label = "UMAP2", vjust = 0.5, angle = 90,size=2,color="gray30")+
+  theme(legend.position = "none")
+
+p2 <- ggplot(pdata,aes(UMAP_1,UMAP_2,color = !!sym(gene1)))+
+  geom_point( size=0.2)+
+  scale_color_gradient(low = "grey", high = "#E7298A") +
+  theme_void() +
+  theme(legend.position = c(0.9,0.25),legend.key.width = unit(0.2, "cm"),legend.key.height = unit(0.4, "cm") ,legend.title = element_text( size=8),legend.text = element_text(size=7))+
+    annotate("segment", x = -9.5, xend = -5.5, y = -14, yend = -14, 
+           arrow = arrow(type = "closed", length = unit(0.05, "inches")),color="gray30") +
+  annotate("segment", x = -9.5, xend = -9.5, y = -14, yend = -10, 
+           arrow = arrow(type = "closed", length = unit(0.05, "inches")),color="gray30") +
+  annotate("text", x = -5.5, y = -15, label = "UMAP1", hjust = 0.5,size=2,color="gray30") +
+  annotate("text", x = -10.5, y = -10.5, label = "UMAP2", vjust = 0.5, angle = 90,size=2,color="gray30")
+p3 <- ggplot(pdata,aes(UMAP_1,UMAP_2,color = !!sym(gene2)))+
+  geom_point(size=0.2 )+
+  scale_color_gradient(low = "grey", high = "#E7298A") +
+  theme_void() +
+  theme(legend.position = c(0.9,0.25),legend.title = element_text( size=8),legend.key.width = unit(0.2, "cm"),legend.key.height = unit(0.4, "cm") ,legend.text = element_text(size=7))+
+    annotate("segment", x = -9.5, xend = -5.5, y = -14, yend = -14, 
+           arrow = arrow(type = "closed", length = unit(0.05, "inches")),color="gray30") +
+  annotate("segment", x = -9.5, xend = -9.5, y = -14, yend = -10, 
+           arrow = arrow(type = "closed", length = unit(0.05, "inches")),color="gray30") +
+  annotate("text", x = -6.5, y = -15, label = "UMAP1", hjust = 0.5,size=2,color="gray30") +
+  annotate("text", x = -10.5, y = -10.5, label = "UMAP2", vjust = 0.5, angle = 90,size=2,color="gray30")
+ 
+
+```
+
+## Fig. 3d-f
+```{r}
+
+proportion_plot <- function(file,g1="CD8A",g2="CHST15"){
+     
+   related_genes <- c(g1, g2 )
+
+  sample <- gsub("_Expression.zip","",file)
+  zipcon <- unz(paste0("data/", sample, "_Expression.zip" ), sprintf("%s_Expression/%s_expression_Celltype_majorlineage.txt",sample,sample))
+  mean_cell <- read.csv(zipcon,sep="\t",check.names = F)
+ 
+  mean_cell <- mean_cell[related_genes,]
+  
+  pdata <- mean_cell %>% mutate(gene=rownames(mean_cell)) %>% pivot_longer(cols = 1:ncol(mean_cell),names_to = "cell",values_to = "val")
+  
+  sum_by_category <- pdata %>%
+    group_by(gene) %>%
+    dplyr::summarize(total = sum(val))
+   
+  pdata <- pdata %>%
+    left_join(sum_by_category, by = "gene") %>%
+    mutate(percentage = val/total)
+   p <- ggplot(pdata, aes(x = cell, y = percentage,fill=cell,label=cell)) +
+    geom_col( ) +
+    facet_wrap(.~gene,scales = 'free')+
+    coord_flip()+
+      geom_text(aes(label = cell, y = 0), hjust = 0, vjust = 0.5, size =2.5, color = "gray20") +  # 
+    theme(strip.text.x = element_text(size = 7),
+      plot.title=element_text(size = 9),legend.position = "none",panel.background = element_blank(),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),axis.text.x = element_blank(),  axis.text.y = element_blank(),axis.ticks = element_blank(), axis.title = element_blank())+
+     ggtitle(gsub("_Expression.zip|_aPD1aCTLA4_Expression.zip","",file))
+   return(p)
+}
+
+
+
+p4 <- proportion_plot("SKCM_GSE120575_aPD1aCTLA4_Expression.zip") 
+p5 <- proportion_plot("KIRC_GSE121636_Expression.zip") 
+p6 <- proportion_plot("NPC_GSE162025_Expression.zip") 
+
+```
+
+## Fig. 3c
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+ 
+df_evidence <-
+  read.csv("data/cell_cell_envidences_details.csv",
+           row.names = 1)
+pdata <-
+  df_evidence %>% mutate(
+    gene_pair = paste0(g1, "-", g2),
+    cell_pair = paste0(src_cell, "-", tar_cell),
+    ds = gsub("([\\W\\_]+GSE\\d+).*", "\\1", dataset),
+    value = 1
+  ) %>%  select(ds, gene_pair, cell_pair, value)
+
+cell_cells <- as.data.frame(table(pdata$cell_pair))
+colnames(cell_cells) <- c("cell-cell", "count")
+cell_cells <- column_to_rownames(cell_cells, var = "cell-cell")
+pdata$cell_pair <- sapply(pdata$cell_pair, function(x) {
+  ifelse(cell_cells[x, "count"] < 4, "Residual", x)
+})
+
+df <- as.data.frame(table(pdata$cell_pair))
+colnames(df) <- c("cell-cell", "Num")
+df <- df[order(df$Num, decreasing = T), ]
+df <- df[df$`cell-cell` != "Residual", ]
+df$`cell-cell` <- factor(df$`cell-cell`, levels = rev(df$`cell-cell`))
+
+df_pairs <-
+  df %>% separate(`cell-cell`, into = c("src", "tar"), sep = "-")
+p <- ggplot(df_pairs, aes(
+  x = src,
+  y = tar,
+  color = Num,
+  size = Num
+)) +
+  geom_point() +
+  scale_color_gradient(low = "orange", high = "darkred") +
+  labs(title =  NULL ) +
+  guides(size = guide_legend(title = "Count"),
+         color = guide_legend(title = "Count")) +
+  scale_size(range  = c(1, 5)) +
+  coord_flip() +
+  theme_minimal( ) +
+  theme(
+    axis.title.x = element_blank(),axis.title.y = element_blank(),
+    axis.text.y = element_text(angle = 90,size=9 ,hjust = 0.5),
+    axis.text.x = element_text(angle = 15,size=9),
+    panel.background = element_rect(fill = "white", colour = "black"),
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(color = "black"),
+    legend.position = c(0.78,1.1),legend.direction = "horizontal",legend.key.height = unit(0.2, "cm"),legend.title = element_text(size=9) ,legend.text = element_text(size=7)
+  )
+
+
+```
+
+## Fig. 4a
+```{r}
+library(data.table)
+library(tibble)
+library(ggplot2)
+library(ggpubr)
+library(gridExtra)
+library(pheatmap)
+library(cowplot)
+file <- "data/ICB_expression.tsv"
+expr <- read.table(file,header = T)
+df_samples<- read.csv("data/ICB_sample.tsv", sep="\t",row.names = 1)
+df_samples <- df_samples[df_samples$ICI_Tx==T &!is.na(df_samples$Response)  ,]
+
+
+response <- df_samples$Responder
+expr <- expr[rownames(df_samples),]
+
+expr_icb <- t(log2(expr+1))
+rdistribution <- function(expr_icb, gene1, gene2, response) {
+  dist <- c()
+  ##Q1
+  rc <- ncol(expr_icb[,expr_icb[gene1,]>mean(expr_icb[gene1,]) &expr_icb[gene2,]>mean(expr_icb[gene2,]) & response])
+  nrc <- ncol(expr_icb[,expr_icb[gene1,]>mean(expr_icb[gene1,]) &expr_icb[gene2,]>mean(expr_icb[gene2,]) & !response])
+   
+  dist <- c(dist,sprintf("%.2f",100*rc/(rc+nrc)))
+  ##Q2
+  rc <- ncol(expr_icb[,expr_icb[gene1,]<mean(expr_icb[gene1,]) &expr_icb[gene2,]>mean(expr_icb[gene2,]) & response])
+  nrc <- ncol(expr_icb[,expr_icb[gene1,]<mean(expr_icb[gene1,]) &expr_icb[gene2,]>mean(expr_icb[gene2,]) & !response])
+   
+  dist <- c(dist,sprintf("%.2f",100*rc/(rc+nrc)))
+  ##Q3
+  rc <- ncol(expr_icb[,expr_icb[gene1,]<mean(expr_icb[gene1,]) &expr_icb[gene2,]<mean(expr_icb[gene2,]) & response])
+  nrc <- ncol(expr_icb[,expr_icb[gene1,]<mean(expr_icb[gene1,]) &expr_icb[gene2,]<mean(expr_icb[gene2,]) & !response])
+   
+  dist <- c(dist,sprintf("%.2f",100*rc/(rc+nrc)))
+  ##Q4
+  rc <- ncol(expr_icb[,expr_icb[gene1,]>mean(expr_icb[gene1,]) &expr_icb[gene2,]<mean(expr_icb[gene2,]) & response])
+  nrc <- ncol(expr_icb[,expr_icb[gene1,]>mean(expr_icb[gene1,]) &expr_icb[gene2,]<mean(expr_icb[gene2,]) & !response])
+   
+  dist <- c(dist,sprintf("%.2f",100*rc/(rc+nrc)))
+  return(dist)
+}
+
+
+gpair <- "CD8A-CHST15"
+
+  gene1 <- gsub("(\\w+)\\-\\w+","\\1",gpair)
+  gene2 <- gsub("\\w+\\-(\\w+)","\\1",gpair)
+  dist <- rdistribution(expr_rank, gene1, gene2, response)
+  pdata <- as.data.frame(t(expr_rank))
+  origin_x <- mean(pdata[[gene1]])
+  origin_y <- mean(pdata[[gene2]])
+  p1 <- ggplot(pdata,aes(x=!!sym(gene1),y=!!sym(gene2),fill=response ))+
+  geom_point(size=2, shape=21,alpha=0.6  )+
+  geom_hline(yintercept = origin_y , linetype = "dashed", color = "red") +
+  geom_vline(xintercept = origin_x , linetype = "dashed", color = "red")+
+  geom_label(x = 1.3*origin_x+0.5, y = 1.3*origin_y , label = paste0(dist[1],"%") ,size=3 ,fill="white"  )+
+  geom_label(x = 0.7* origin_x-0.5, y = 1.3*origin_y, label = paste0(dist[2],"%") ,size=3 ,fill="white"  )+
+  geom_label(x =  0.7* origin_x-0.5, y =0.7*origin_y, label = paste0(dist[3],"%") ,size=3 ,fill="white"  )+
+  geom_label(x = 1.3*origin_x+0.5, y = 0.7*origin_y, label = paste0(dist[4],"%") ,size=3 ,fill="white"  )+
+    geom_text(x =7 , y =  7, label =  gpair,size=3 ,color="gray30")+
+    labs(x =sprintf("Expression(%s)",gene1),y=sprintf("Expression(%s)",gene2))+
+    coord_cartesian(clip = "off")+
+    scale_fill_manual(values = c( "#666666", "#E7298A" ))+
+  theme(plot.title = element_blank(), panel.background = element_blank(),panel.grid = element_blank(), panel.border = element_rect(colour = "black", fill=NA, linewidth=0.7),legend.position = c(0.65,0.05),legend.text = element_text(size=5),legend.direction = "horizontal",legend.title = element_text(size = 9), axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11),  
+        axis.text.x = element_text(size = 7),  
+        axis.text.y = element_text(size = 7) ,legend.background = element_rect(fill = "transparent"),legend.key.height = unit(0.2, "cm"))   
+
+
+
+```
+
+## Fig. 4b
+```{r}
+library(ggplot2)
+df_pancacer <- readRDS("data/pancaner_expression.RDS")
+df_clinical<- readRDS("data/pancaner_clinical.RDS")
+df_clinical$time<- df_clinical$time/30 
+
+patients <- intersect(rownames(df_clinical),rownames(df_pancacer))
+df_clinical <- df_clinical[patients,]
+df_pancacer <- df_pancacer[patients,]
+
+gpair <- "CD8A-CHST15"
+gene1 <- gsub("(\\w+)\\-\\w+","\\1",gpair)
+gene2 <- gsub("\\w+\\-(\\w+)","\\1",gpair)
+pdata <- as.data.frame(df_pancacer)
+origin_x <- mean(pdata[,gene1] )
+origin_y <- mean(pdata[,gene2] )
+p2<- ggplot(pdata,aes(x=!!sym(gene1),y=!!sym(gene2),color=df_clinical$Study ))+
+geom_point( alpha=0.7,size=1 )+
+geom_hline(yintercept = origin_y , linetype = "dashed", color = "red") +
+geom_vline(xintercept = origin_x , linetype = "dashed", color = "red")+
+  labs(x =sprintf("Expression(%s)",gene1),y=sprintf("Expression(%s)",gene2) )+
+  guides(fill=guide_legend(title="TCGA_Study"))+
+      geom_text(x =8 , y =  8, label =  gpair,size=3 ,color="gray30")+
+  annotate("text", x = c(0.7* origin_x-0.5, 1.3*origin_x+0.5, 0.7* origin_x-0.5, 1.3*origin_x+0.5), y = c(0.7*origin_y, 0.7*origin_y, 1.3*origin_y, 1.3*origin_y), label = c("III", "IV", "II","I"  ), size = 6 ,color="gray20")+
+theme(plot.title = element_blank(), panel.background = element_blank(),panel.grid = element_blank(), panel.border = element_rect(colour = "black", fill=NA, linewidth=1),legend.position = "none", axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11),  
+        axis.text.x = element_text(size = 7),  
+        axis.text.y = element_text(size = 7) )  
+p2
+```
+
+## Fig. 4c-d
+```{r}
+library(ggplot2)
+library(survival)
+library(survminer)
+df_pancacer <- readRDS("data/pancaner_expression.RDS")
+df_clinical<- readRDS("data/pancaner_clinical.RDS")
+df_clinical$time<- df_clinical$time/30 
+
+patients <- intersect(rownames(df_clinical),rownames(df_pancacer))
+df_clinical <- df_clinical[patients,]
+df_pancacer <- df_pancacer[patients,]
+
+#######survival analysis.
+q1 <- df_pancacer[,gene1]>origin_x &df_pancacer[,gene2]>origin_y
+q2 <- df_pancacer[,gene1]<origin_x &df_pancacer[,gene2]>origin_y
+q3 <- df_pancacer[,gene1]<origin_x &df_pancacer[,gene2]<origin_y
+q4 <- df_pancacer[,gene1]>origin_x &df_pancacer[,gene2]<origin_y
+
+df_clinical[q1,"region"] <- rep("I",sum(q1))
+df_clinical[q2,"region"] <- rep("II",sum(q2))
+df_clinical[q3,"region"] <- rep("III",sum(q3))
+df_clinical[q4,"region"] <- rep("IV",sum(q4))
+
+df_clinical$region <- as.factor(df_clinical$region )
+
+
+fit <- survfit(Surv(time,status)~region,data=df_clinical)
+names(fit$strata) <- gsub("region=", "", names(fit$strata))
+p3 <- ggsurvplot(fit,pval = T,censor.shape="",xlim=c(0,120),break.time.by = 50,xlab="Time(months)",legend=c(0.9,0.75) ,pval.size=3, pval.method = T )   
+
+
+p3 <- p3$plot+
+  scale_x_continuous(breaks = seq(0, 120, by = 100), limits = c(0, 120))+
+  labs(color="Regions")+
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11),  
+        axis.text.x = element_text(size = 7),  
+        axis.text.y = element_text(size = 7),legend.background = element_rect(fill = "transparent", color = NA), legend.key.height = unit(0.2,"cm") )   
+
+### vote group.
+ 
+df_q <- data.frame(row.names = rownames(df_clinical))
+for (gpair in scan("data/feature_list.csv",character(),sep="\n")) {
+  # gpair <- "CD8A-CHST15"
+  gene1 <- gsub("(\\w+)\\-\\w+","\\1",gpair)
+  gene2 <- gsub("\\w+\\-(\\w+)","\\1",gpair)
+  pdata <- as.data.frame(df_pancacer)
+  origin_x <- mean(pdata[,gene1] )
+  origin_y <- mean(pdata[,gene2] )
+  
+  q1 <- df_pancacer[,gene1]>origin_x &df_pancacer[,gene2]>origin_y
+  q2 <- df_pancacer[,gene1]<origin_x &df_pancacer[,gene2]>origin_y
+  q3 <- df_pancacer[,gene1]<origin_x &df_pancacer[,gene2]<origin_y
+  q4 <- df_pancacer[,gene1]>origin_x &df_pancacer[,gene2]<origin_y
+  
+  df_q[q1,gpair] <- rep("median",sum(q1))
+  df_q[q2,gpair] <- rep("bad",sum(q2))
+  df_q[q3,gpair] <- rep("median",sum(q3))
+  df_q[q4,gpair] <- rep("good",sum(q4))
+ 
+}
+
+df_clinical[["Groups"]] <- unlist(apply(df_q, 1, function(x) {
+  label_count <- c(sum(x=="median"),sum(x=="bad"), sum(x=="good"))
+  ind <- 1
+  if(length(which(label_count==max(label_count)) )>1){
+     if (runif(1)>0.5) {
+       ind <- which(label_count==max(label_count))[1]
+     }else{
+       ind <- which(label_count==max(label_count))[2]
+     }
+    # return("unkown")
+  }else{
+    ind <-which(label_count==max(label_count))
+  }
+    return( c("median","bad","good")[ind] )
+
+}))
+ 
+fit <- survfit(Surv(time,status)~Groups,data=df_clinical)
+names(fit$strata) <- gsub("Groups=", "", names(fit$strata))
+
+p4 <-  ggsurvplot(fit,pval = T,censor.shape="",xlim=c(0,120),break.time.by = 50,xlab="Time(months)", legend=c(0.9,0.8),pval.size=3,pval.method = T )   
+
+p4 <- p4$plot+
+  scale_x_continuous(breaks = seq(0, 120, by = 100), limits = c(0, 120))+
+  labs(color="Groups")+
+  theme(axis.title.x = element_text(size = 11), 
+        axis.title.y = element_text(size = 11),  
+        axis.text.x = element_text(size = 7),  
+        axis.text.y = element_text(size = 7), 
+        plot.subtitle = element_text(size = 9),legend.background = element_rect(fill = "transparent", color = NA), legend.key.height = unit(0.2,"cm"))   
+
+
+p3
+p4
+
+```
+
+##Fig. 4e
+```{r}
+library(pheatmap)
+df_pancacer <- readRDS( "data/pancaner_ratio.RDS")
+df_pancancer_ratio <- readRDS( file="data/pancaner_ratio_mean.RDS")
+
+p  <- pheatmap(as.matrix(df_pancancer_ratio),angle_col   = 45)
+groups <- as.data.frame(cutree(p$tree_col,k=2))
+groups[c("DLBC(48)","LAML(151)"),] <- c(3,3)
+
+colnames(groups) <- c("type")
+groups$type <- ifelse(groups$type==1,"mediate",groups$type)
+groups$type <- ifelse(groups$type==2,"inert",groups$type)
+groups$type <- ifelse(groups$type==3,"proactive",groups$type)
+
+groups[["type"]] <- as.factor(groups[["type"]])
+
+p5 <- pheatmap(df_pancancer_ratio,angle_col   = 90,annotation_col = groups,treeheight_row = 0,fontsize = 9,fontsize_row = 7,fontsize_col = 7,treeheight_col = 2.5 )
+p_empty <- ggplot(df_pancancer_ratio)
+
+p5
+```
+
+## Fig. 5a
+```{r}
+library(ggplot2)
+library(ggpubr)
+
+df_models <- read.csv("data/model_aucs.csv")
+df_models <- df_models %>%   mutate(model_with_auc = paste(model, " ( AUC = ", round(AUC, 2), " )", sep = ""))
+
+p <- ggplot(df_models, aes(x = FPR, y = TPR, color = model_with_auc)) +
+  geom_line() +
+  geom_abline(linetype = "dashed") +   
+  # scale_color_manual(values = c("red", "blue", "green")) + 
+  labs(title = NULL, x = "False Positive Rate (FPR)", y = "True Positive Rate (TPR)" ) +
+  theme(panel.background = element_rect(fill = "white"),legend.position = c(0.72,0.25),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect( size = 0.5,fill = NA),legend.title = element_blank() ,legend.text = element_text(size=8,color = "gray10"),axis.text = element_text(size=7),axis.title = element_text(size=9),legend.key.height = unit(0.35,"cm") ,legend.background = element_blank())  
+  
+p
+
+
+
+```
+
+## Fig. 5b
+```{r}
+library(ggplot2)
+library(ggpubr)
+
+df_metrics <- read.csv("data/all_method_metrics.csv")
+
+df_metrics <-df_metrics[df_metrics$model=="GNB", ]
+to_display <- c("ccpair_scores","cell_fractions","immune_status","immune_response_scores","lrpair_weights","pathway_activities","tf_activities","TIDE")
+
+df_metrics <- df_metrics[df_metrics$file %in% to_display,]
+df_metrics <- df_metrics %>% pivot_longer(names_to = "metric",cols = c("acc","auc"),values_to = "val") %>% 
+  mutate(err=ifelse(metric=="acc",acc_sd,auc_sd))
+
+
+
+df_metrics$file <- gsub("_"," ",df_metrics$file)
+
+p <- ggplot(df_metrics, aes(x =  file , y = val, fill = metric)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = val - err, ymax = val + err), position = position_dodge(width = 0.8), width = 0.2, size = 0.5)+
+ coord_flip()+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+  scale_fill_manual(values =c("acc"="#009392","auc"="#CF597E"))+
+  geom_text(aes(label = round(val,2),y=val+0.1, x=sort(c(c(1:8)-0.65,c(1:8)-0.35))), vjust = -1.5,size =2.5, hjust=0.5 )+
+  labs(x="TME biomarkers",y="Metrics")+
+ 
+  theme( panel.grid = element_blank(),panel.background = element_rect(fill = "white"), legend.position = c(0.7,1.05),    axis.text = element_text(size=7),legend.key.size = unit(0.3,"cm") ,legend.direction = "horizontal",legend.title = element_blank() ,axis.title = element_text(size=9),axis.line = element_line(linewidth = 0.5,color = "gray10"))
+p
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
