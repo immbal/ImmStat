@@ -28,7 +28,7 @@ This repository includes the scripts and data of the proposed method.
 - **immune_status.csv**: Immune status with label
 - **lrpair_weights.csv**: LRPair weights with label
 - **pathway_activities.csv**: Pathway activities with label
-
+---
 - **the code.rmd**: Provides the code for data analysis and reproduction.
 - **the anchor_genes.rmd**: Provides the code to explore anchor genes and their performance in relation to immune status.
 
